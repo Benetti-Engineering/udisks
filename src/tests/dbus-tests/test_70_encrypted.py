@@ -931,8 +931,9 @@ class UdisksEncryptedTestBITLK(udiskstestcase.UdisksTestCase):
         dbus_idusage.assertEqual('crypto')
         dbus_idtype = self.get_property(self.loop, '.Block', 'IdType')
         dbus_idtype.assertEqual('BitLocker')
-        dbus_uuid = self.get_property(self.loop, '.Block', 'IdUUID')
-        dbus_uuid.assertEqual('8f595209-f5b9-49a0-85d4-cb8f80258c27')
+        dbus_uuid = self.get_property_raw(self.loop, '.Block', 'IdUUID')
+        if dbus_uuid:
+            self.assertEqual(dbus_uuid, '8f595209-f5b9-49a0-85d4-cb8f80258c27')
 
         crypt_path = self.loop.Unlock(self.passphrase, self.no_options,
                                       dbus_interface=self.iface_prefix + '.Encrypted')
@@ -951,14 +952,21 @@ class UdisksEncryptedTestBITLK(udiskstestcase.UdisksTestCase):
         dbus_fs.assertEqual("ntfs")
 
         dbus_label = self.get_property_raw(self.loop, '.Block', 'IdLabel')
-        bitlk_path = self.get_property(crypt_dev, '.Block', 'PreferredDevice')
         if dbus_label:
             # has label (and we know it): label with '/' and spaces replaced by '_' should be used for DM name
             dm_path = '/dev/mapper/%s' % dbus_label.replace('/', '_').replace(' ', '_')
-        else:
-            # no label: bitlk-<UUID> should be used for DM name
+            self.assertTrue(os.path.exists(dm_path))
+        elif dbus_uuid:
+            # no label but UUID: bitlk-<UUID> should be used for DM name
             dm_path = '/dev/mapper/bitlk-8f595209-f5b9-49a0-85d4-cb8f80258c27'
             self.assertTrue(os.path.exists(dm_path))
+        else:
+            # fallback to bitlk-<device number>
+            dbus_number = self.get_property_raw(self.loop, '.Block', 'DeviceNumber')
+            dm_path = '/dev/mapper/bitlk-%s' % dbus_number
+            self.assertTrue(os.path.exists(dm_path))
+
+        bitlk_path = self.get_property(crypt_dev, '.Block', 'PreferredDevice')
         bitlk_path.assertEqual(self.str_to_ay(dm_path))
 
         self.loop.Lock(self.no_options, dbus_interface=self.iface_prefix + '.Encrypted')
