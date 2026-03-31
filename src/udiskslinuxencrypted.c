@@ -223,7 +223,7 @@ udisks_linux_encrypted_update (UDisksLinuxEncrypted   *encrypted,
 {
   UDisksBlock *block = udisks_object_peek_block (UDISKS_OBJECT (object));
 
-  udisks_linux_block_encrypted_lock (block);
+  udisks_linux_block_encrypted_info_lock (block);
 
   update_child_configuration (encrypted, object);
   update_cleartext_device (encrypted, object);
@@ -238,7 +238,7 @@ udisks_linux_encrypted_update (UDisksLinuxEncrypted   *encrypted,
   if (udisks_linux_block_is_luks (block))
     update_metadata_size (encrypted, object);
 
-  udisks_linux_block_encrypted_unlock (block);
+  udisks_linux_block_encrypted_info_unlock (block);
 
   g_dbus_interface_skeleton_flush (G_DBUS_INTERFACE_SKELETON (encrypted));
 }

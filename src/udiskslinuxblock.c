@@ -91,6 +91,9 @@ typedef struct _UDisksLinuxBlockClass   UDisksLinuxBlockClass;
 struct _UDisksLinuxBlock
 {
   UDisksBlockSkeleton parent_instance;
+
+  /* per-device lock for cryptsetup info calls */
+  GMutex encrypted_lock;
 };
 
 struct _UDisksLinuxBlockClass
@@ -106,18 +109,34 @@ G_DEFINE_TYPE_WITH_CODE (UDisksLinuxBlock, udisks_linux_block, UDISKS_TYPE_BLOCK
 /* ---------------------------------------------------------------------------------------------------- */
 
 /* global lock for all libcryptsetup calls (libcryptsetup/libdevmapper is not thread safe) */
-static GMutex encrypted_lock;
+static GMutex global_encrypted_lock;
 
 static void
 udisks_linux_block_init (UDisksLinuxBlock *block)
 {
+  g_mutex_init (&(block->encrypted_lock));
   g_dbus_interface_skeleton_set_flags (G_DBUS_INTERFACE_SKELETON (block),
                                        G_DBUS_INTERFACE_SKELETON_FLAGS_HANDLE_METHOD_INVOCATIONS_IN_THREAD);
 }
 
 static void
+udisks_linux_block_finalize (GObject *object)
+{
+  UDisksLinuxBlock *block = UDISKS_LINUX_BLOCK (object);
+
+  g_mutex_clear (&(block->encrypted_lock));
+
+  if (G_OBJECT_CLASS (udisks_linux_block_parent_class)->finalize != NULL)
+    G_OBJECT_CLASS (udisks_linux_block_parent_class)->finalize (object);
+}
+
+static void
 udisks_linux_block_class_init (UDisksLinuxBlockClass *klass)
 {
+  GObjectClass *gobject_class;
+
+  gobject_class = G_OBJECT_CLASS (klass);
+  gobject_class->finalize = udisks_linux_block_finalize;
 }
 
 /**
@@ -2804,16 +2823,67 @@ udisks_linux_block_is_unknown_crypto (UDisksBlock *block)
 
 /* ---------------------------------------------------------------------------------------------------- */
 
+/**
+ * udisks_linux_block_encrypted_lock:
+ * @block: A #UDisksBlock.
+ *
+ * Acquires both the global cryptsetup lock and the per-device lock.
+ * Use this for active operations (unlock, lock, resize, format, etc.)
+ * that modify device state.
+ *
+ * Must be paired with udisks_linux_block_encrypted_unlock().
+ */
 void
 udisks_linux_block_encrypted_lock (UDisksBlock *block)
 {
-  g_mutex_lock (&encrypted_lock);
+  UDisksLinuxBlock *block_iface = UDISKS_LINUX_BLOCK (block);
+  g_mutex_lock (&global_encrypted_lock);
+  g_mutex_lock (&block_iface->encrypted_lock);
 }
 
+/**
+ * udisks_linux_block_encrypted_unlock:
+ * @block: A #UDisksBlock.
+ *
+ * Releases both the per-device lock and the global cryptsetup lock.
+ * Must be paired with udisks_linux_block_encrypted_lock().
+ */
 void
 udisks_linux_block_encrypted_unlock (UDisksBlock *block)
 {
-  g_mutex_unlock (&encrypted_lock);
+  UDisksLinuxBlock *block_iface = UDISKS_LINUX_BLOCK (block);
+  g_mutex_unlock (&block_iface->encrypted_lock);
+  g_mutex_unlock (&global_encrypted_lock);
+}
+
+/**
+ * udisks_linux_block_encrypted_info_lock:
+ * @block: A #UDisksBlock.
+ *
+ * Acquires only the per-device lock. Use this for info operations
+ * that read device metadata without modifying state.
+ *
+ * Must be paired with udisks_linux_block_encrypted_info_unlock().
+ */
+void
+udisks_linux_block_encrypted_info_lock (UDisksBlock *block)
+{
+  UDisksLinuxBlock *block_iface = UDISKS_LINUX_BLOCK (block);
+  g_mutex_lock (&block_iface->encrypted_lock);
+}
+
+/**
+ * udisks_linux_block_encrypted_info_unlock:
+ * @block: A #UDisksBlock.
+ *
+ * Releases the per-device lock.
+ * Must be paired with udisks_linux_block_encrypted_info_lock().
+ */
+void
+udisks_linux_block_encrypted_info_unlock (UDisksBlock *block)
+{
+  UDisksLinuxBlock *block_iface = UDISKS_LINUX_BLOCK (block);
+  g_mutex_unlock (&block_iface->encrypted_lock);
 }
 
 /* ---------------------------------------------------------------------------------------------------- */
