@@ -1380,4 +1380,68 @@ udisks_linux_drive_object_nvme_subsys_uevent (UDisksLinuxDriveObject  *object,
     udisks_linux_nvme_controller_update (UDISKS_LINUX_NVME_CONTROLLER (object->iface_nvme_ctrl), object);
   if (object->iface_nvme_fabrics != NULL)
     udisks_linux_nvme_fabrics_update (UDISKS_LINUX_NVME_FABRICS (object->iface_nvme_fabrics), object);
+
+  /* For controllers that don't report size_total, recalculate the drive size
+   * from the authoritative subsystem blocks list rather than relying on
+   * udisks block object lookup which is subject to race conditions.
+   * Filter namespaces per-controller using sysfs parentage when possible,
+   * falling back to all subsystem blocks for transports where blocks are
+   * not children of the controller (e.g. nvme-loop). */
+  if (object->iface_drive != NULL && subsystem_blocks != NULL)
+    {
+      UDisksLinuxDevice *ctrl_device;
+
+      ctrl_device = udisks_linux_drive_object_get_device (object, TRUE);
+      if (ctrl_device != NULL)
+        {
+          if (ctrl_device->nvme_ctrl_info != NULL &&
+              ctrl_device->nvme_ctrl_info->size_total == 0)
+            {
+              const gchar *ctrl_sysfs_path;
+              gsize ctrl_path_len;
+              UDisksLinuxBlockObject **b;
+              guint64 size = 0;
+              guint64 size_all = 0;
+              gboolean have_prefix_match = FALSE;
+
+              ctrl_sysfs_path = g_udev_device_get_sysfs_path (ctrl_device->udev_device);
+              ctrl_path_len = strlen (ctrl_sysfs_path);
+
+              for (b = subsystem_blocks; *b != NULL; b++)
+                {
+                  UDisksLinuxDevice *blk_device = udisks_linux_block_object_get_device (*b);
+                  if (blk_device != NULL)
+                    {
+                      if (blk_device->nvme_ns_info != NULL &&
+                          blk_device->nvme_ns_info->current_lba_format.data_size > 0)
+                        {
+                          guint64 ns_size;
+
+                          ns_size = (guint64) blk_device->nvme_ns_info->nsize *
+                                    ((guint64) blk_device->nvme_ns_info->current_lba_format.data_size +
+                                     (guint64) blk_device->nvme_ns_info->current_lba_format.metadata_size);
+                          size_all += ns_size;
+                          /* Block devices are typically children of their NVMe controller
+                           * in sysfs. Filter per-controller using sysfs parentage to handle
+                           * "isolated islands" within a subsystem. */
+                          if (g_str_has_prefix (g_udev_device_get_sysfs_path (blk_device->udev_device), ctrl_sysfs_path) &&
+                              g_udev_device_get_sysfs_path (blk_device->udev_device)[ctrl_path_len] == '/')
+                            {
+                              size += ns_size;
+                              have_prefix_match = TRUE;
+                            }
+                        }
+                      g_object_unref (blk_device);
+                    }
+                }
+              /* For transports where block devices are not children of their
+               * controller in sysfs (e.g. nvme-loop, blocks live under
+               * nvme-subsystem), fall back to using all blocks in the subsystem. */
+              if (!have_prefix_match)
+                size = size_all;
+              udisks_drive_set_size (UDISKS_DRIVE (object->iface_drive), size);
+            }
+          g_object_unref (ctrl_device);
+        }
+    }
 }

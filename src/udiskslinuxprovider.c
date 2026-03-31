@@ -1276,7 +1276,11 @@ handle_block_uevent_for_nvme_subsys (UDisksLinuxProvider *provider,
       /* skip partitions */
       if (g_strcmp0 (g_udev_device_get_devtype (device->udev_device), "disk") != 0)
         return;
-      parent = g_udev_device_get_parent_with_subsystem (device->udev_device, "nvme-subsystem", NULL);
+      /* Block devices may be children of their NVMe controller (subsystem "nvme")
+       * or of the NVMe subsystem device (subsystem "nvme-subsystem"). Try both. */
+      parent = g_udev_device_get_parent_with_subsystem (device->udev_device, "nvme", NULL);
+      if (parent == NULL)
+        parent = g_udev_device_get_parent_with_subsystem (device->udev_device, "nvme-subsystem", NULL);
     }
   else
   /* NVMe subsystems and controllers */
