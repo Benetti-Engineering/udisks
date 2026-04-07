@@ -270,7 +270,6 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
         # first check if session objects are supported
         supported = self.get_property_raw(manager, '.Manager.ISCSI.Initiator', 'SessionsSupported')
         if not supported:
-            udiskstestcase.UdisksTestCase.tearDownClass()
             self.skipTest("ISCSI.Session objects not supported.")
 
         nodes, _ = manager.DiscoverSendTargets(self.address, self.port, self.no_options,
@@ -382,11 +381,9 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
         Test iBFT discovery and login if available
         """
         if not os.path.exists('/sys/firmware/acpi/tables/iBFT'):
-            udiskstestcase.UdisksTestCase.tearDownClass()
             self.skipTest('No iBFT ACPI table detected')
         ret, _out = udiskstestcase.run_command('modprobe iscsi_ibft')
         if ret != 0:
-            udiskstestcase.UdisksTestCase.tearDownClass()
             self.skipTest('iscsi_ibft kernel module unavailable')
 
         manager = self.get_object('/Manager')
