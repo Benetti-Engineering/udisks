@@ -305,7 +305,7 @@ class UdisksTestCase(unittest.TestCase):
         try:
             # self.iface_prefix is the same as the DBus name we acquire
             obj = self.bus.get_object(self.iface_prefix, path)
-        except:
+        except Exception:
             obj = None
         return obj
 

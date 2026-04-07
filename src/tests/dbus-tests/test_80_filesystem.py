@@ -311,7 +311,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
           rep, mode, _ = manager.CanResize(self._fs_signature)
           chk, _ = manager.CanCheck(self._fs_signature)
           rpr, _ = manager.CanRepair(self._fs_signature)
-        except:
+        except Exception:
           rpr = chk = rep = False
         if not (rpr and chk and rep) or mode & BlockDev.FSResizeFlags.OFFLINE_SHRINK == 0:
             self.skipTest('Cannot check, offline-shrink and repair %s filesystem' % self._fs_signature)
@@ -358,7 +358,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
         manager = self.get_interface(self.get_object('/Manager'), '.Manager')
         try:
             res, mode, _ = manager.CanResize(self._fs_signature)
-        except:
+        except Exception:
             res = False
             mode = 0
         if not res:
@@ -838,7 +838,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
     def _remove_partition(self, part):
         try:
             part.Delete(self.no_options, dbus_interface=self.iface_prefix + '.Partition')
-        except:
+        except Exception:
             pass
 
     @udiskstestcase.tag_test(udiskstestcase.TestTags.UNSAFE)
@@ -969,7 +969,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
             self.assertHasIface(disk, 'org.freedesktop.UDisks2.PartitionTable')
             parts = self.get_property(disk, '.PartitionTable', 'Partitions')
             parts.assertLen(1)
-        except:
+        except Exception:
             self.skipTest('Known protective partition table detection deficiencies on the kernel side, no parttable found this time, skipping...')
 
         pttype = self.get_property(disk, '.PartitionTable', 'Type')
