@@ -226,7 +226,7 @@ class DBusProperty(object):
         ret = self._check(timeout, check_fn)
 
         if not ret:
-            raise AssertionError('unexpectedly None%s' % ' (%s)' % msg if msg else '')
+            raise AssertionError('unexpectedly None%s' % (' (%s)' % msg if msg else ''))
 
     def assertLen(self, length, timeout=TIMEOUT, msg=None):
         check_fn = lambda x: len(x) == length
