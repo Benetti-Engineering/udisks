@@ -228,7 +228,7 @@ def setup_nvme_target(dev_paths, subnqn, tr_loop=True, tr_tcp_ipv4=False, tr_tcp
 
         ports = ",".join(ports_list)
 
-        json = """
+        tcli_config = """
 {
   "ports": [
 %s
@@ -246,7 +246,7 @@ def setup_nvme_target(dev_paths, subnqn, tr_loop=True, tr_tcp_ipv4=False, tr_tcp
   ]
 }
 """
-        tmp.write(json % (ports, namespaces, subnqn))
+        tmp.write(tcli_config % (ports, namespaces, subnqn))
 
     ret, out = udiskstestcase.run_command("nvmetcli restore %s" % tcli_json_file)
     os.unlink(tcli_json_file)
