@@ -751,7 +751,7 @@ class UdisksLVMVDOTest(UDisksLVMTestBase):
         dbus_dedup = self.get_property(lv, '.VDOVolume', 'Deduplication')
         dbus_dedup.assertTrue()
 
-        # disable compression
+        # enable compression
         lv.EnableCompression(True, self.no_options,
                              dbus_interface=self.iface_prefix + '.VDOVolume')
         dbus_comp = self.get_property(lv, '.VDOVolume', 'Compression')
