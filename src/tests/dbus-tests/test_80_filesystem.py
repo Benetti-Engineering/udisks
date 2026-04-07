@@ -1825,8 +1825,7 @@ class FailsystemTestCase(UdisksFSTestCase):
 
         msg = '[Ww]rong fs type'
         with self.assertRaisesRegex(dbus.exceptions.DBusException, msg):
-            mnt_path = disk.Mount(d, dbus_interface=self.iface_prefix + '.Filesystem')
-            self.assertIsNone(mnt_path)
+            disk.Mount(d, dbus_interface=self.iface_prefix + '.Filesystem')
 
         # invalid option
         d = dbus.Dictionary(signature='sv')
@@ -1835,8 +1834,7 @@ class FailsystemTestCase(UdisksFSTestCase):
         msg = 'org.freedesktop.UDisks2.Error.OptionNotPermitted: Mount option '\
               '`definitely-nonexisting-option\' is not allowed'
         with self.assertRaisesRegex(dbus.exceptions.DBusException, msg):
-            mnt_path = disk.Mount(d, dbus_interface=self.iface_prefix + '.Filesystem')
-            self.assertIsNone(mnt_path)
+            disk.Mount(d, dbus_interface=self.iface_prefix + '.Filesystem')
 
         # should not be mounted -- so lets try to unmount it
         msg = 'org.freedesktop.UDisks2.Error.NotMounted: Device `%s\' is not '\
