@@ -419,7 +419,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
         self._test_grow(True)
 
     def test_offline_grow(self):
-        self._test_grow(True)
+        self._test_grow(False)
 
     def test_size(self):
         self._check_can_create()
