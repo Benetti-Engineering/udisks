@@ -39,7 +39,7 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
             udiskstestcase.UdisksTestCase.tearDownClass()
             raise unittest.SkipTest('Udisks module for iscsi tests not loaded, skipping.')
 
-    def _force_lougout(self, target):
+    def _force_logout(self, target):
         self.run_command('iscsiadm --mode node --targetname %s --portal %s:%d '
                          '--logout' % (target, self.address, self.port))
 
@@ -65,7 +65,7 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
                                         dbus_interface=self.iface_prefix + '.Manager.ISCSI.Initiator')
         self.assertEqual(init, self.initiator)
 
-    def _read_initator_name(self):
+    def _read_initiator_name(self):
         with open(INITIATOR_FILE, "rb") as f:
             data = f.read()
 
@@ -92,7 +92,7 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
 
         initiator_dbus = manager.GetInitiatorName(self.no_options,
                                                   dbus_interface=self.iface_prefix + '.Manager.ISCSI.Initiator')
-        initiator_sys = self._read_initator_name()
+        initiator_sys = self._read_initiator_name()
         self.assertEqual(initiator_dbus, initiator_sys.decode())
 
         initiator_dbus = manager.GetInitiatorNameRaw(self.no_options,
@@ -115,7 +115,7 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
         self.assertEqual(host, self.address)
         self.assertEqual(port, self.port)
 
-        self.addCleanup(self._force_lougout, self.noauth_iqn)
+        self.addCleanup(self._force_logout, self.noauth_iqn)
         manager.Login(iqn, tpg, host, port, iface, self.no_options,
                       dbus_interface=self.iface_prefix + '.Manager.ISCSI.Initiator',
                       timeout=self.iscsi_timeout)
@@ -182,7 +182,7 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
         # right password
         options['password'] = self.password
 
-        self.addCleanup(self._force_lougout, self.chap_iqn)
+        self.addCleanup(self._force_logout, self.chap_iqn)
         manager.Login(iqn, tpg, host, port, iface, options,
                       dbus_interface=self.iface_prefix + '.Manager.ISCSI.Initiator',
                       timeout=self.iscsi_timeout)
@@ -235,7 +235,7 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
         options['reverse-username'] = self.mutual_iqn
         options['reverse-password'] = self.mutual_password
 
-        self.addCleanup(self._force_lougout, self.mutual_iqn)
+        self.addCleanup(self._force_logout, self.mutual_iqn)
         manager.Login(iqn, tpg, host, port, iface, options,
                       dbus_interface=self.iface_prefix + '.Manager.ISCSI.Initiator',
                       timeout=self.iscsi_timeout)
@@ -283,7 +283,7 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
 
         (iqn, tpg, host, port, iface) = node
 
-        self.addCleanup(self._force_lougout, self.noauth_iqn)
+        self.addCleanup(self._force_logout, self.noauth_iqn)
         manager.Login(iqn, tpg, host, port, iface, self.no_options,
                       dbus_interface=self.iface_prefix + '.Manager.ISCSI.Initiator',
                       timeout=self.iscsi_timeout)
@@ -334,7 +334,7 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
         self.assertEqual(host, self.address)
         self.assertEqual(port, self.port)
 
-        self.addCleanup(self._force_lougout, self.noauth_iqn)
+        self.addCleanup(self._force_logout, self.noauth_iqn)
 
         # first attempt - wrong password
         options = dbus.Dictionary(signature='sv')
@@ -402,7 +402,7 @@ class UdisksISCSITest(udiskstestcase.UdisksTestCase):
             self.assertIsNotNone(host)
             self.assertIsNotNone(port)
 
-            self.addCleanup(self._force_lougout, iqn)
+            self.addCleanup(self._force_logout, iqn)
 
             # no password
             options = dbus.Dictionary(signature='sv')
