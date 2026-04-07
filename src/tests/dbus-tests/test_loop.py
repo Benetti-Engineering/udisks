@@ -239,7 +239,7 @@ class UdisksManagerLoopDeviceTest(udiskstestcase.UdisksTestCase):
         backing_file = self.str_to_ay(os.path.join(os.getcwd(), self.LOOP_DEVICE_FILENAME))
         raw.assertEqual(backing_file)
 
-        # should use the whole file except for the first 4096 bytes (offset)
+        # should use the whole file
         size = self.get_property(loop_dev_obj, ".Block", "Size")
         size.assertEqual(10 * 1024**2)
 
