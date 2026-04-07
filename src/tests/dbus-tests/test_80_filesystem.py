@@ -94,7 +94,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
         try:
             avail, opts, util = BlockDev.fs_can_mkfs(self._fs_signature)
         except Exception as e:
-            self.skipTest(e.message)
+            self.skipTest(str(e))
         if util is not None:
             self.skipTest('Cannot create filesystem %s: required command `%s` not found' % (self._fs_signature, util))
         if not avail:
@@ -109,7 +109,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
         try:
             avail, util = BlockDev.fs_can_set_label(self._fs_signature)
         except Exception as e:
-            self.skipTest(e.message)
+            self.skipTest(str(e))
         if util is not None:
             self.skipTest('Cannot set label on an existing %s filesystem: required command `%s` not found' % (self._fs_signature, util))
         if not avail:
@@ -119,7 +119,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
         try:
             avail, util = BlockDev.fs_can_set_uuid(self._fs_signature)
         except Exception as e:
-            self.skipTest(e.message)
+            self.skipTest(str(e))
         if util is not None:
             self.skipTest('Cannot set UUID on an existing %s filesystem: required command `%s` not found' % (self._fs_signature, util))
         if not avail:
