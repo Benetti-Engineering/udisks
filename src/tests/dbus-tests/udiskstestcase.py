@@ -238,8 +238,8 @@ class DBusProperty(object):
             else:
                 raise AssertionError('Expected length %d, but %s has length %d%s' % (length,
                                                                                      self._value,
-                                                                                     len(self._value,
-                                                                                     ' (%s)' % msg if msg else '')))
+                                                                                     len(self._value),
+                                                                                     ' (%s)' % msg if msg else ''))
     def assertContains(self, member, timeout=TIMEOUT, msg=None):
         check_fn = lambda x: member in x
         ret = self._check(timeout, check_fn)
