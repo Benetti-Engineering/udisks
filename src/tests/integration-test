@@ -30,8 +30,6 @@
 # - add and test method for changing LUKS passphrase
 # - test Format with take-ownership
 
-from __future__ import print_function
-
 import sys
 import os
 from os.path import dirname
