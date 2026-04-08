@@ -67,7 +67,7 @@ import gi
 
 gi.require_version('UDisks', '2.0')
 
-from gi.repository import GLib, Gio, UDisks
+from gi.repository import GLib, Gio, UDisks   # pylint: disable=no-name-in-module
 
 # find local test_polkit.py
 sys.path.insert(0, dirname(__file__))
@@ -236,7 +236,7 @@ class UDisksTestCase(unittest.TestCase):
         udev/udisks to catch up on the change events.
         """
         subprocess.call(['udevadm', 'settle'])
-        context = GLib.main_context_default()
+        context = GLib.main_context_default()  # pylint: disable=no-value-for-parameter
         timeout = 100
         # wait until all GDBus events have been processed
         while context.pending() and timeout > 0:
@@ -375,7 +375,7 @@ class UDisksTestCase(unittest.TestCase):
             try:
                 return fn(*args)
             except GLib.GError as e:
-                if 'UDisks2.Error.DeviceBusy' not in e.message:
+                if 'UDisks2.Error.DeviceBusy' not in str(e):
                     raise
                 cls.write_stderr('[busy] ')
                 time.sleep(0.3)
@@ -748,8 +748,8 @@ class FS(UDisksTestCase):
             self.fs_create(None, 'bogus', no_options)
             self.fail('Expected failure for bogus file system')
         except GLib.GError as e:
-            self.assertIn('UDisks2.Error.NotSupported', e.message)
-            self.assertIn('\'bogus\' is not supported', e.message)
+            self.assertIn('UDisks2.Error.NotSupported', str(e))
+            self.assertIn('\'bogus\' is not supported', str(e))
 
     def test_create_fs_unsupported_label(self):
         """Format() with unsupported label"""
@@ -759,7 +759,7 @@ class FS(UDisksTestCase):
             self.fs_create(None, 'minix', options)
             self.fail('Expected failure for unsupported label')
         except GLib.GError as e:
-            self.assertIn('UDisks2.Error.NotSupported', e.message)
+            self.assertIn('UDisks2.Error.NotSupported', str(e))
 
     def test_force_removal(self):
         """fs: forced removal"""
@@ -870,8 +870,8 @@ class FS(UDisksTestCase):
                 self.fs_create(None, fs_type, no_options)
                 self.fail('Expected failure for missing mkfs.' + fs_type)
             except GLib.GError as e:
-                self.assertIn('UDisks2.Error.NotSupported', e.message)
-                self.assertIn('executable %s not found' % mkfs, e.message)
+                self.assertIn('UDisks2.Error.NotSupported', str(e))
+                self.assertIn('executable %s not found' % mkfs, str(e))
             return
 
         # do checks with command line tools (mkfs/mount/umount)
@@ -1058,7 +1058,7 @@ class FS(UDisksTestCase):
         try:
             fs.call_set_label_sync(l, no_options, None)
         except GLib.GError as e:
-            if 'UDisks2.Error.NotSupported' in e.message:
+            if 'UDisks2.Error.NotSupported' in str(e):
                 # these fses are known to not support relabeling
                 self.assertIn(fs_type, ['minix', 'f2fs'])
                 supported = False
@@ -1458,7 +1458,7 @@ class Luks(UDisksTestCase):
                 encrypted.call_lock_sync(no_options, None)
                 self.fail('Lock() unexpectedly succeeded on mounted file system')
             except GLib.GError as e:
-                self.assertIn('UDisks2.Error.Failed', e.message)
+                self.assertIn('UDisks2.Error.Failed', str(e))
         finally:
             # umount
             self.retry_busy(fs.call_unmount_sync, no_options, None)
@@ -1819,7 +1819,7 @@ class MDRaid(UDisksTestCase):
     """
     Test some of the code we are refactoring.
     """
-    devices = None
+    devices = []
 
     def setUp(self):
         self.assertEqual(len(glob('/dev/md/int_test*')), 0)

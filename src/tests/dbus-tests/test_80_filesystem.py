@@ -35,7 +35,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
     @classmethod
     def setUpClass(cls):
         udiskstestcase.UdisksTestCase.setUpClass()
-        if not BlockDev.is_initialized():
+        if not BlockDev.is_initialized():  # pylint: disable=no-value-for-parameter
             BlockDev.init(cls.requested_plugins, None)
         else:
             BlockDev.reinit(cls.requested_plugins, True, None)
@@ -92,7 +92,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
 
     def _check_can_create(self):
         try:
-            avail, opts, util = BlockDev.fs_can_mkfs(self._fs_signature)
+            avail, _opts, util = BlockDev.fs_can_mkfs(self._fs_signature)
         except Exception as e:
             self.skipTest(str(e))
         if util is not None:
@@ -102,7 +102,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
 
     def _check_can_label(self):
         # basic mkfs checks are covered by previous _check_can_create()
-        avail, opts, util = BlockDev.fs_can_mkfs(self._fs_signature)
+        _avail, opts, _util = BlockDev.fs_can_mkfs(self._fs_signature)
         return opts & BlockDev.FSMkfsOptionsFlags.LABEL
 
     def _check_can_relabel(self):
@@ -308,11 +308,11 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
 
         manager = self.get_interface(self.get_object('/Manager'), '.Manager')
         try:
-          rep, mode, _ = manager.CanResize(self._fs_signature)
-          chk, _ = manager.CanCheck(self._fs_signature)
-          rpr, _ = manager.CanRepair(self._fs_signature)
+            rep, mode, _ = manager.CanResize(self._fs_signature)
+            chk, _ = manager.CanCheck(self._fs_signature)
+            rpr, _ = manager.CanRepair(self._fs_signature)
         except Exception:
-          rpr = chk = rep = False
+            rpr = chk = rep = False
         if not (rpr and chk and rep) or mode & BlockDev.FSResizeFlags.OFFLINE_SHRINK == 0:
             self.skipTest('Cannot check, offline-shrink and repair %s filesystem' % self._fs_signature)
 
@@ -587,7 +587,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
             conf_file_path = self._get_mount_options_conf_path()
             conf_file_backup = self.read_file(conf_file_path)
             self.addCleanup(self.write_file, conf_file_path, conf_file_backup)
-        except FileNotFoundError as e:
+        except FileNotFoundError:
             # no existing mount_options.conf, simply remove the file once finished
             self.addCleanup(self.remove_file, conf_file_path, True)
 
@@ -633,7 +633,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
             test_readonly(self, False, "[defaults]\nntfs:ntfs_defaults=ro\n\n[%sx]\nntfs:ntfs3_defaults=rw\n" % block_fs_dev)
             test_readonly(self, True,  "[defaults]\ndefaults=ro\nntfs_defaults=ro\n\n[%sx]\nntfs:ntfs3_defaults=rw\n" % block_fs_dev)
             test_readonly(self, True,  "[defaults]\ndefaults=ro\nntfs:ntfs_defaults=ro\n\n[%sx]\nntfs:ntfs3_defaults=rw\n" % block_fs_dev)
-            if self._have_ntfs3g:
+            if self._have_ntfs3g:  # pylint: disable=no-member
                 test_readonly(self, False, "[defaults]\nntfs_defaults=ro\nntfs:ntfs3_defaults=rw\nntfs_drivers=ntfs3,ntfs\n", ignore_fstype=True)
                 test_readonly(self, False, "[defaults]\nntfs_defaults=ro\nntfs:ntfs3_defaults=rw\nntfs_drivers=ntfs3\n", ignore_fstype=True)
                 test_readonly(self, True,  "[defaults]\nntfs_defaults=ro\nntfs:ntfs3_defaults=rw\nntfs_drivers=ntfs,ntfs3\n", ignore_fstype=True)
@@ -990,7 +990,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
             self.skipTest('Filesystem %s does not create protective partition table' % self._fs_signature)
         self._check_can_create()
 
-        disk, part = self._create_protective_part()
+        _disk, part = self._create_protective_part()
 
         # attempt to create another filesystem on the partition
         msg = 'This partition cannot be modified because it contains a partition table; please reinitialize layout of the whole device.'
