@@ -34,9 +34,6 @@ from __future__ import print_function
 
 import sys
 import os
-import contextlib
-import signal
-import shutil
 from os.path import dirname
 
 srcdir = dirname(dirname(dirname(os.path.realpath(__file__))))
