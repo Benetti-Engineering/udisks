@@ -45,7 +45,7 @@ class UdisksLoopDeviceTest(udiskstestcase.UdisksTestCase):
         ret_code, result = self.run_command('losetup --list')
         self.assertEqual(ret_code, 0)
         if self.dev_name in result:
-            self.fail('Test loop device was not deleted' % self.dev_name)
+            self.fail('Test loop device %s was not deleted' % self.dev_name)
         # TODO: Device is still present on Dbus even when detached. This is
         # probably a udisks and udisks2 issue. Not addressed for now to keep
         # the same udisks/udisks2 functionality (japokorn, Nov 2016)
@@ -239,7 +239,7 @@ class UdisksManagerLoopDeviceTest(udiskstestcase.UdisksTestCase):
         backing_file = self.str_to_ay(os.path.join(os.getcwd(), self.LOOP_DEVICE_FILENAME))
         raw.assertEqual(backing_file)
 
-        # should use the whole file except for the first 4096 bytes (offset)
+        # should use the whole file
         size = self.get_property(loop_dev_obj, ".Block", "Size")
         size.assertEqual(10 * 1024**2)
 

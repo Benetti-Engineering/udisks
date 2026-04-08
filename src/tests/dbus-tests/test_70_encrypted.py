@@ -483,7 +483,7 @@ class UdisksEncryptedTestLUKS1(UdisksEncryptedTest):
 
         m = re.search(r"Payload offset:\s*([0-9]+)", out)
         if m is None:
-            self.fail("Failed to get LUKS 2 offset information using 'cryptsetup luksDump %s'" % disk)
+            self.fail("Failed to get LUKS 1 offset information using 'cryptsetup luksDump %s'" % disk)
         # offset value is in 512B blocks; we need to multiply to get the real metadata size
         return  int(m.group(1)) * 512
 

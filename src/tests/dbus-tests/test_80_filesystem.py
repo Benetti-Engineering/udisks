@@ -94,7 +94,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
         try:
             avail, opts, util = BlockDev.fs_can_mkfs(self._fs_signature)
         except Exception as e:
-            self.skipTest(e.message)
+            self.skipTest(str(e))
         if util is not None:
             self.skipTest('Cannot create filesystem %s: required command `%s` not found' % (self._fs_signature, util))
         if not avail:
@@ -109,7 +109,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
         try:
             avail, util = BlockDev.fs_can_set_label(self._fs_signature)
         except Exception as e:
-            self.skipTest(e.message)
+            self.skipTest(str(e))
         if util is not None:
             self.skipTest('Cannot set label on an existing %s filesystem: required command `%s` not found' % (self._fs_signature, util))
         if not avail:
@@ -119,7 +119,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
         try:
             avail, util = BlockDev.fs_can_set_uuid(self._fs_signature)
         except Exception as e:
-            self.skipTest(e.message)
+            self.skipTest(str(e))
         if util is not None:
             self.skipTest('Cannot set UUID on an existing %s filesystem: required command `%s` not found' % (self._fs_signature, util))
         if not avail:
@@ -311,7 +311,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
           rep, mode, _ = manager.CanResize(self._fs_signature)
           chk, _ = manager.CanCheck(self._fs_signature)
           rpr, _ = manager.CanRepair(self._fs_signature)
-        except:
+        except Exception:
           rpr = chk = rep = False
         if not (rpr and chk and rep) or mode & BlockDev.FSResizeFlags.OFFLINE_SHRINK == 0:
             self.skipTest('Cannot check, offline-shrink and repair %s filesystem' % self._fs_signature)
@@ -358,7 +358,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
         manager = self.get_interface(self.get_object('/Manager'), '.Manager')
         try:
             res, mode, _ = manager.CanResize(self._fs_signature)
-        except:
+        except Exception:
             res = False
             mode = 0
         if not res:
@@ -419,7 +419,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
         self._test_grow(True)
 
     def test_offline_grow(self):
-        self._test_grow(True)
+        self._test_grow(False)
 
     def test_size(self):
         self._check_can_create()
@@ -838,7 +838,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
     def _remove_partition(self, part):
         try:
             part.Delete(self.no_options, dbus_interface=self.iface_prefix + '.Partition')
-        except:
+        except Exception:
             pass
 
     @udiskstestcase.tag_test(udiskstestcase.TestTags.UNSAFE)
@@ -969,7 +969,7 @@ class UdisksFSTestCase(udiskstestcase.UdisksTestCase):
             self.assertHasIface(disk, 'org.freedesktop.UDisks2.PartitionTable')
             parts = self.get_property(disk, '.PartitionTable', 'Partitions')
             parts.assertLen(1)
-        except:
+        except Exception:
             self.skipTest('Known protective partition table detection deficiencies on the kernel side, no parttable found this time, skipping...')
 
         pttype = self.get_property(disk, '.PartitionTable', 'Type')
@@ -1825,8 +1825,7 @@ class FailsystemTestCase(UdisksFSTestCase):
 
         msg = '[Ww]rong fs type'
         with self.assertRaisesRegex(dbus.exceptions.DBusException, msg):
-            mnt_path = disk.Mount(d, dbus_interface=self.iface_prefix + '.Filesystem')
-            self.assertIsNone(mnt_path)
+            disk.Mount(d, dbus_interface=self.iface_prefix + '.Filesystem')
 
         # invalid option
         d = dbus.Dictionary(signature='sv')
@@ -1835,8 +1834,7 @@ class FailsystemTestCase(UdisksFSTestCase):
         msg = 'org.freedesktop.UDisks2.Error.OptionNotPermitted: Mount option '\
               '`definitely-nonexisting-option\' is not allowed'
         with self.assertRaisesRegex(dbus.exceptions.DBusException, msg):
-            mnt_path = disk.Mount(d, dbus_interface=self.iface_prefix + '.Filesystem')
-            self.assertIsNone(mnt_path)
+            disk.Mount(d, dbus_interface=self.iface_prefix + '.Filesystem')
 
         # should not be mounted -- so lets try to unmount it
         msg = 'org.freedesktop.UDisks2.Error.NotMounted: Device `%s\' is not '\

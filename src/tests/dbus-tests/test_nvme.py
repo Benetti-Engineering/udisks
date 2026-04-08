@@ -34,10 +34,10 @@ def _wait_for_nvme_controllers_ready(subnqn, timeout=10):
                         # Found a matching live controller
                         os.system("udevadm settle")
                         return
-                except:
+                except Exception:
                     continue
 
-        except:
+        except Exception:
             pass
 
         time.sleep(1)
@@ -61,7 +61,7 @@ def find_nvme_ctrl_devs_for_subnqn(subnqn, wait_for_ready=True):
                     # nvme controller node is a character device
                     if stat.S_ISCHR(st.st_mode):
                         dev_paths += [path]
-                except:
+                except Exception:
                     pass
 
     # Wait for controllers to be ready if requested
@@ -104,7 +104,7 @@ def find_nvme_ns_devs_for_subnqn(subnqn, wait_for_ready=True):
                 st = os.lstat(path)
                 if stat.S_ISBLK(st.st_mode):
                     ns_dev_paths += [path]
-            except:
+            except Exception:
                 pass
 
     def _check_subsys(subsys, ns_dev_paths):
@@ -228,7 +228,7 @@ def setup_nvme_target(dev_paths, subnqn, tr_loop=True, tr_tcp_ipv4=False, tr_tcp
 
         ports = ",".join(ports_list)
 
-        json = """
+        tcli_config = """
 {
   "ports": [
 %s
@@ -246,7 +246,7 @@ def setup_nvme_target(dev_paths, subnqn, tr_loop=True, tr_tcp_ipv4=False, tr_tcp
   ]
 }
 """
-        tmp.write(json % (ports, namespaces, subnqn))
+        tmp.write(tcli_config % (ports, namespaces, subnqn))
 
     ret, out = udiskstestcase.run_command("nvmetcli restore %s" % tcli_json_file)
     os.unlink(tcli_json_file)
@@ -962,12 +962,12 @@ class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
         try:
             saved_hostnqn = self.read_file(HOSTNQN_PATH)
             self.addCleanup(self.write_file, HOSTNQN_PATH, saved_hostnqn)
-        except:
+        except Exception:
             self.addCleanup(self.remove_file, HOSTNQN_PATH, ignore_nonexistent=True)
         try:
             saved_hostid = self.read_file(HOSTID_PATH)
             self.addCleanup(self.write_file, HOSTID_PATH, saved_hostid)
-        except:
+        except Exception:
             self.addCleanup(self.remove_file, HOSTID_PATH, ignore_nonexistent=True)
         self.remove_file(HOSTNQN_PATH, ignore_nonexistent=True)
         self.remove_file(HOSTID_PATH, ignore_nonexistent=True)

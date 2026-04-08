@@ -226,7 +226,7 @@ class DBusProperty(object):
         ret = self._check(timeout, check_fn)
 
         if not ret:
-            raise AssertionError('unexpectedly None%s' % ' (%s)' % msg if msg else '')
+            raise AssertionError('unexpectedly None%s' % (' (%s)' % msg if msg else ''))
 
     def assertLen(self, length, timeout=TIMEOUT, msg=None):
         check_fn = lambda x: len(x) == length
@@ -238,8 +238,8 @@ class DBusProperty(object):
             else:
                 raise AssertionError('Expected length %d, but %s has length %d%s' % (length,
                                                                                      self._value,
-                                                                                     len(self._value,
-                                                                                     ' (%s)' % msg if msg else '')))
+                                                                                     len(self._value),
+                                                                                     ' (%s)' % msg if msg else ''))
     def assertContains(self, member, timeout=TIMEOUT, msg=None):
         check_fn = lambda x: member in x
         ret = self._check(timeout, check_fn)
@@ -305,7 +305,7 @@ class UdisksTestCase(unittest.TestCase):
         try:
             # self.iface_prefix is the same as the DBus name we acquire
             obj = self.bus.get_object(self.iface_prefix, path)
-        except:
+        except Exception:
             obj = None
         return obj
 
