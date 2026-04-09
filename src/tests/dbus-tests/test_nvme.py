@@ -469,17 +469,17 @@ class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
 
         attrs = drive_obj.SmartGetAttributes(self.no_options, dbus_interface=self.iface_prefix + '.NVMe.Controller')
         self.assertGreater(len(attrs), 10)
-        self.assertEqual(attrs['avail_spare'], 0);
-        self.assertEqual(attrs['spare_thresh'], 0);
-        self.assertEqual(attrs['percent_used'], 0);
-        self.assertEqual(attrs['ctrl_busy_time'], 0);
-        self.assertEqual(attrs['power_cycles'], 0);
-        self.assertEqual(attrs['unsafe_shutdowns'], 0);
-        self.assertEqual(attrs['media_errors'], 0);
-        self.assertIn('num_err_log_entries', attrs);
-        self.assertEqual(attrs['temp_sensors'], [0, 0, 0, 0, 0, 0, 0, 0]);
-        self.assertEqual(attrs['warning_temp_time'], 0);
-        self.assertEqual(attrs['critical_temp_time'], 0);
+        self.assertEqual(attrs['avail_spare'], 0)
+        self.assertEqual(attrs['spare_thresh'], 0)
+        self.assertEqual(attrs['percent_used'], 0)
+        self.assertEqual(attrs['ctrl_busy_time'], 0)
+        self.assertEqual(attrs['power_cycles'], 0)
+        self.assertEqual(attrs['unsafe_shutdowns'], 0)
+        self.assertEqual(attrs['media_errors'], 0)
+        self.assertIn('num_err_log_entries', attrs)
+        self.assertEqual(attrs['temp_sensors'], [0, 0, 0, 0, 0, 0, 0, 0])
+        self.assertEqual(attrs['warning_temp_time'], 0)
+        self.assertEqual(attrs['critical_temp_time'], 0)
 
         # Try trigerring a self-test operation
         msg = 'The NVMe controller has no support for self-test operations'

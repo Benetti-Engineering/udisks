@@ -822,9 +822,6 @@ class UdisksLVMTeardownTest(UDisksLVMTestBase):
 
     PASSPHRASE = 'einszweidrei'
 
-    def setUp(self):
-        super(UdisksLVMTeardownTest, self).setUp()
-
     def tearDown(self):
         self.doCleanups()
         super(UdisksLVMTeardownTest, self).tearDown()

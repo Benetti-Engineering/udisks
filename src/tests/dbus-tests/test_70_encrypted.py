@@ -34,7 +34,7 @@ def _get_blkid_version():
     return Version(m.groups()[0])
 
 def _get_luks_version(disk):
-    ret, out = udiskstestcase.UdisksTestCase.run_command("cryptsetup luksDump %s" % disk)
+    _ret, out = udiskstestcase.UdisksTestCase.run_command("cryptsetup luksDump %s" % disk)
     m = re.search(r'Version:\s*([1-2])', out)
     if not m or len(m.groups()) != 1:
         raise RuntimeError('Failed to determine LUKS version of device: %s.' % disk)
@@ -47,7 +47,12 @@ class UdisksEncryptedTest(udiskstestcase.UdisksTestCase):
     PASSPHRASE = 'shouldnotseeme'
     LUKS_NAME = 'myshinylittleluks'
 
+    luks_version = None
+
     def _create_luks(self, device, passphrase, binary=False):
+        raise NotImplementedError()
+
+    def _get_metadata_size_from_dump(self, disk):
         raise NotImplementedError()
 
     def _remove_luks(self, device, close=True):
@@ -513,7 +518,7 @@ class UdisksEncryptedTestLUKS2(UdisksEncryptedTest):
 
     @classmethod
     def setUpClass(cls):
-        if not BlockDev.is_initialized():
+        if not BlockDev.is_initialized():  # pylint: disable=no-value-for-parameter
             BlockDev.init(cls.requested_plugins, None)
         else:
             BlockDev.reinit(cls.requested_plugins, True, None)
@@ -628,7 +633,8 @@ class UdisksEncryptedTestLUKS2(UdisksEncryptedTest):
         device.Lock(self.no_options, dbus_interface=self.iface_prefix + '.Encrypted')
 
         # check that the device is not LUKS1 compatible
-        ret, out = udiskstestcase.UdisksTestCase.run_command("cryptsetup luksDump %s" % disk)
+        ret, out = self.run_command("cryptsetup luksDump %s" % disk)
+        self.assertEqual(ret, 0)
         m = re.search(r'PBKDF:\s*(.*)', out)
         if not m or len(m.groups()) != 1:
             raise RuntimeError('Failed to determine PBKDF of LUKS device: %s.' % disk)
@@ -669,9 +675,9 @@ class UdisksEncryptedTestLUKS2(UdisksEncryptedTest):
             # check that after reaping device and restoring header, cryptsetup will recognize header
             device.Lock(self.no_options, dbus_interface=self.iface_prefix + '.Encrypted')
             DISK_SIZE = 100 # magic number from `targetcli_config.json`
-            ret, out = udiskstestcase.UdisksTestCase.run_command("dd if=/dev/zero of=%s bs=1M count=%d" % (disk, DISK_SIZE))
+            ret, out = self.run_command("dd if=/dev/zero of=%s bs=1M count=%d" % (disk, DISK_SIZE))
             self.assertEqual(ret, 0)
-            ret, out = udiskstestcase.UdisksTestCase.run_command("cryptsetup luksDump %s" % disk)
+            ret, out = self.run_command("cryptsetup luksDump %s" % disk)
             self.assertEqual(1, ret)
             self.assertTrue(("Device %s is not a valid LUKS device." % disk) in out)
             # wait for changes to propagate from udev to udisks
@@ -681,7 +687,7 @@ class UdisksEncryptedTestLUKS2(UdisksEncryptedTest):
             device = self.get_device(disk)
             device.RestoreEncryptedHeader(backup_file_path, self.no_options,
                                  dbus_interface=self.iface_prefix + '.Block')
-            ret, out = udiskstestcase.UdisksTestCase.run_command("cryptsetup luksDump %s" % disk)
+            ret, out = self.run_command("cryptsetup luksDump %s" % disk)
             self.assertEqual(ret, 0)
 
         # get the Encrypted interface back

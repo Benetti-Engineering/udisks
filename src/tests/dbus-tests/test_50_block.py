@@ -2,7 +2,6 @@ import copy
 import dbus
 import glob
 import fcntl
-import shutil
 import os
 import time
 

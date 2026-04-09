@@ -5,7 +5,6 @@ import os
 import time
 import re
 import shutil
-import sys
 import multiprocessing
 from datetime import datetime
 from enum import Enum
@@ -254,7 +253,7 @@ class UdisksTestCase(unittest.TestCase):
     iface_prefix = None
     path_prefix = None
     bus = None
-    vdevs = None
+    vdevs = []
     distro = (None, None, None)       # (project, distro_name, version)
     no_options = dbus.Dictionary(signature="sv")
 

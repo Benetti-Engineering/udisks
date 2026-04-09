@@ -1,8 +1,6 @@
 import time
 import dbus
 import os
-import shutil
-import tempfile
 
 import gi
 gi.require_version('GLib', '2.0')
@@ -109,7 +107,7 @@ class UdisksManagerLoopDeviceTest(udiskstestcase.UdisksTestCase):
             loop_dev_obj_path = self.manager.LoopSetup(fd, self.no_options)
         self.assertTrue(loop_dev_obj_path)
         self.assertTrue(loop_dev_obj_path.startswith(self.path_prefix))
-        path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
+        _path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
         self.addCleanup(self.run_command, "losetup -d /dev/%s" % loop_dev)
 
         loop_dev_obj = self.get_object(loop_dev_obj_path)
@@ -143,7 +141,7 @@ class UdisksManagerLoopDeviceTest(udiskstestcase.UdisksTestCase):
             loop_dev_obj_path = self.manager.LoopSetup(fd, opts)
         self.assertTrue(loop_dev_obj_path)
         self.assertTrue(loop_dev_obj_path.startswith(self.path_prefix))
-        path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
+        _path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
         self.addCleanup(self.run_command, "losetup -d /dev/%s" % loop_dev)
 
         loop_dev_obj = self.get_object(loop_dev_obj_path)
@@ -169,7 +167,7 @@ class UdisksManagerLoopDeviceTest(udiskstestcase.UdisksTestCase):
             loop_dev_obj_path = self.manager.LoopSetup(fd, opts)
         self.assertTrue(loop_dev_obj_path)
         self.assertTrue(loop_dev_obj_path.startswith(self.path_prefix))
-        path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
+        _path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
         self.addCleanup(self.run_command, "losetup -d /dev/%s" % loop_dev)
 
         loop_dev_obj = self.get_object(loop_dev_obj_path)
@@ -195,7 +193,7 @@ class UdisksManagerLoopDeviceTest(udiskstestcase.UdisksTestCase):
             loop_dev_obj_path = self.manager.LoopSetup(fd, opts)
         self.assertTrue(loop_dev_obj_path)
         self.assertTrue(loop_dev_obj_path.startswith(self.path_prefix))
-        path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
+        _path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
         self.addCleanup(self.run_command, "losetup -d /dev/%s" % loop_dev)
 
         loop_dev_obj = self.get_object(loop_dev_obj_path)
@@ -217,9 +215,9 @@ class UdisksManagerLoopDeviceTest(udiskstestcase.UdisksTestCase):
     @udiskstestcase.tag_test(udiskstestcase.TestTags.UNSTABLE)
     def test_50_create_no_part_scan(self):
         # create a partition on the file (future loop device)
-        ret, out = self.run_command("echo 'label:dos' | sfdisk %s" % self.LOOP_DEVICE_FILENAME)
+        ret, _out = self.run_command("echo 'label:dos' | sfdisk %s" % self.LOOP_DEVICE_FILENAME)
         self.assertEqual(ret, 0)
-        ret, out = self.run_command("echo 'size=9M, type=L' | sfdisk %s" % self.LOOP_DEVICE_FILENAME)
+        ret, _out = self.run_command("echo 'size=9M, type=L' | sfdisk %s" % self.LOOP_DEVICE_FILENAME)
         self.assertEqual(ret, 0)
 
         opts = dbus.Dictionary({"no-part-scan": dbus.Boolean(True)}, signature=dbus.Signature('sv'))
@@ -228,7 +226,7 @@ class UdisksManagerLoopDeviceTest(udiskstestcase.UdisksTestCase):
             loop_dev_obj_path = self.manager.LoopSetup(fd, opts)
         self.assertTrue(loop_dev_obj_path)
         self.assertTrue(loop_dev_obj_path.startswith(self.path_prefix))
-        path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
+        _path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
         self.addCleanup(self.run_command, "losetup -d /dev/%s" % loop_dev)
 
         loop_dev_obj = self.get_object(loop_dev_obj_path)
@@ -272,7 +270,7 @@ class UdisksManagerLoopDeviceTest(udiskstestcase.UdisksTestCase):
             loop_dev_obj_path = self.manager.LoopSetup(fd, opts)
         self.assertTrue(loop_dev_obj_path)
         self.assertTrue(loop_dev_obj_path.startswith(self.path_prefix))
-        path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
+        _path, loop_dev = loop_dev_obj_path.rsplit("/", 1)
         self.addCleanup(self.run_command, "losetup -d /dev/%s" % loop_dev)
 
         loop_dev_obj = self.get_object(loop_dev_obj_path)
