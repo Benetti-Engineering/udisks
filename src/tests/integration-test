@@ -30,13 +30,8 @@
 # - add and test method for changing LUKS passphrase
 # - test Format with take-ownership
 
-from __future__ import print_function
-
 import sys
 import os
-import contextlib
-import signal
-import shutil
 from os.path import dirname
 
 srcdir = dirname(dirname(dirname(os.path.realpath(__file__))))
@@ -147,11 +142,12 @@ class UDisksTestCase(unittest.TestCase):
         else:
             print('Testing installed system binaries')
             cls.daemon_path = None
-            for l in open('/usr/share/dbus-1/system-services/'
-                          'org.freedesktop.UDisks2.service'):
-                if l.startswith('Exec='):
-                    cls.daemon_path = l.split('=', 1)[1].split()[0]
-                    break
+            with open('/usr/share/dbus-1/system-services/'
+                      'org.freedesktop.UDisks2.service') as f:
+                for l in f:
+                    if l.startswith('Exec='):
+                        cls.daemon_path = l.split('=', 1)[1].split()[0]
+                        break
             assert cls.daemon_path, 'could not determine daemon path from D-BUS .service file'
 
         print('daemon path: ' + cls.daemon_path)
@@ -479,8 +475,9 @@ class UDisksTestCase(unittest.TestCase):
         assert os.path.exists(rw_dev)
 
         # let's be 100% sure that we pick a virtual one
-        assert open('/sys/block/%s/device/model' %
-                    os.path.basename(rw_dev)).read().strip() == 'scsi_debug'
+        with open('/sys/block/%s/device/model' %
+                  os.path.basename(rw_dev)) as f:
+            assert f.read().strip() == 'scsi_debug'
 
         with open('/sys/bus/pseudo/drivers/scsi_debug/ptype', 'w') as f:
             f.write('0')
@@ -516,9 +513,8 @@ class UDisksTestCase(unittest.TestCase):
 
         device = device.split('/')[-1]
         if os.path.exists('/sys/block/' + device):
-            f = open('/sys/block/%s/device/delete' % device, 'w')
-            f.write('1')
-            f.close()
+            with open('/sys/block/%s/device/delete' % device, 'w') as f:
+                f.write('1')
         while os.path.exists(device):
             time.sleep(0.1)
         cls.sync()
@@ -531,7 +527,8 @@ class UDisksTestCase(unittest.TestCase):
         scan_files = glob('/sys/bus/pseudo/devices/adapter*/host*/scsi_host/host*/scan')
         assert len(scan_files) > 0
         for f in scan_files:
-            open(f, 'w').write('- - -\n')
+            with open(f, 'w') as sf:
+                sf.write('- - -\n')
         timeout = 100
         while not os.path.exists(cls.device) and timeout > 0:
             time.sleep(0.1)
