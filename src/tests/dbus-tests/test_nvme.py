@@ -267,6 +267,18 @@ def disable_target_ns(subnqn, nsid, enable=False):
     with open("/sys/kernel/config/nvmet/subsystems/%s/namespaces/%d/enable" % (subnqn, nsid), "w") as f:
         f.write("1" if enable else "0")
 
+    # trigger controller namespace rescan - the kernel AEN for namespace
+    # changes may not be reliably delivered with nvme-loop
+    for ctrl_path in glob.glob("/sys/class/nvme/nvme*/"):
+        subsysnqn_file = os.path.join(ctrl_path, "subsysnqn")
+        try:
+            with open(subsysnqn_file, "r") as f:
+                if f.read().strip() == subnqn:
+                    with open(os.path.join(ctrl_path, "rescan_controller"), "w") as f:
+                        f.write("1")
+        except OSError:
+            pass
+
 
 class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
     SUBNQN = 'udisks_test_subnqn'
@@ -373,7 +385,7 @@ class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
         id = self.get_property_raw(drive_obj, '.Drive', 'Id')
         self.assertTrue(id.startswith('Linux-'))
         size = self.get_property_raw(drive_obj, '.Drive', 'Size')
-        self.assertEqual(size, 0)
+        self.assertEqual(size, self.NS_SIZE * self.NUM_NS)
 
         ctrl_id = self.get_property_raw(drive_obj, '.NVMe.Controller', 'ControllerID')
         self.assertGreater(ctrl_id, 0)
@@ -604,7 +616,7 @@ class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
         state.assertEqual('live', timeout=10)
 
         ctrl_size = self.get_property(drive_obj, '.Drive', 'Size')
-        ctrl_size.assertEqual(0)
+        ctrl_size.assertEqual(self.NS_SIZE * self.NUM_NS, timeout=60)
 
         # detach the second namespace
         nsid = self.get_property_raw(ns, '.NVMe.Namespace', 'NSID')
@@ -617,7 +629,7 @@ class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
         state.assertEqual('live', timeout=10)
 
         ctrl_size = self.get_property(drive_obj, '.Drive', 'Size')
-        ctrl_size.assertEqual(0)
+        ctrl_size.assertEqual(self.NS_SIZE, timeout=60)
 
         # attach that namespace back
         disable_target_ns(self.SUBNQN, nsid, enable=True)
@@ -752,7 +764,7 @@ class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
         subnqn = self.get_property(ctrl, '.NVMe.Controller', 'SubsystemNQN')
         subnqn.assertEqual(self.str_to_ay(self.SUBNQN))
         ctrl_size = self.get_property(ctrl, '.Drive', 'Size')
-        ctrl_size.assertEqual(0)
+        ctrl_size.assertEqual(self.NS_SIZE * self.NUM_NS, timeout=60)
 
         # count number of namespaces pointing to our controller
         namespaces = self._find_block_objects_for_ctrl(ctrl_obj_path)
@@ -770,7 +782,7 @@ class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
         namespaces = self._find_block_objects_for_ctrl(ctrl_obj_path)
         self.assertEqual(len(namespaces), 0)
         ctrl_size = self.get_property(ctrl, '.Drive', 'Size')
-        ctrl_size.assertEqual(0)
+        ctrl_size.assertEqual(0, timeout=60)
 
         ctrl.Disconnect(self.no_options, dbus_interface=self.iface_prefix + '.NVMe.Fabrics')
 
@@ -898,7 +910,7 @@ class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
         subnqn = self.get_property(ctrl, '.NVMe.Controller', 'SubsystemNQN')
         subnqn.assertEqual(self.str_to_ay(self.SUBNQN))
         ctrl_size = self.get_property(ctrl, '.Drive', 'Size')
-        ctrl_size.assertEqual(0)
+        ctrl_size.assertEqual(self.NS_SIZE * self.NUM_NS, timeout=60)
 
         transport = self.get_property(ctrl2, '.NVMe.Fabrics', 'Transport')
         transport.assertEqual('tcp')
@@ -907,7 +919,7 @@ class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
         subnqn = self.get_property(ctrl2, '.NVMe.Controller', 'SubsystemNQN')
         subnqn.assertEqual(self.str_to_ay(self.SUBNQN))
         ctrl_size = self.get_property(ctrl2, '.Drive', 'Size')
-        ctrl_size.assertEqual(0)
+        ctrl_size.assertEqual(self.NS_SIZE * self.NUM_NS, timeout=60)
 
         if self._ipv6_available:
             transport = self.get_property(ctrl3, '.NVMe.Fabrics', 'Transport')
@@ -917,7 +929,7 @@ class UdisksNVMeTest(udiskstestcase.UdisksTestCase):
             subnqn = self.get_property(ctrl3, '.NVMe.Controller', 'SubsystemNQN')
             subnqn.assertEqual(self.str_to_ay(self.SUBNQN))
             ctrl_size = self.get_property(ctrl3, '.Drive', 'Size')
-            ctrl_size.assertEqual(0)
+            ctrl_size.assertEqual(self.NS_SIZE * self.NUM_NS, timeout=60)
 
         # count number of namespaces pointing to our controller
         ns_ctrl3 = ()
