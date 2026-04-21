@@ -92,7 +92,7 @@ struct _UDisksLinuxBlock
 {
   UDisksBlockSkeleton parent_instance;
 
-  /* only allow single cryptsetup call at once */
+  /* per-device lock for cryptsetup info calls */
   GMutex encrypted_lock;
 };
 
@@ -107,6 +107,9 @@ G_DEFINE_TYPE_WITH_CODE (UDisksLinuxBlock, udisks_linux_block, UDISKS_TYPE_BLOCK
                          G_IMPLEMENT_INTERFACE (UDISKS_TYPE_BLOCK, block_iface_init));
 
 /* ---------------------------------------------------------------------------------------------------- */
+
+/* global lock for all libcryptsetup calls (libcryptsetup/libdevmapper is not thread safe) */
+static GMutex global_encrypted_lock;
 
 static void
 udisks_linux_block_init (UDisksLinuxBlock *block)
@@ -1238,25 +1241,6 @@ udisks_linux_block_update (UDisksLinuxBlock       *block,
   g_free (s);
   s = udisks_decode_udev_string (g_udev_device_get_property (device->udev_device, "ID_FS_UUID_ENC"),
                                  g_udev_device_get_property (device->udev_device, "ID_FS_UUID"));
-  if ((!s || strlen (s) == 0) && udisks_linux_block_is_bitlk (iface))
-    {
-      BDCryptoBITLKInfo *bitlk_info;
-
-      /* Attempt to retrieve bitlk uuid from the on-disk header */
-      bitlk_info = bd_crypto_bitlk_info (device_file, &error);
-      if (bitlk_info)
-        {
-          g_free (s);
-          s = g_strdup (bitlk_info->uuid);
-          bd_crypto_bitlk_info_free (bitlk_info);
-        }
-      else
-        {
-          g_warning ("Crypto bitlk container detected on %s but failed to parse the header: %s",
-                     device_file, error->message);
-          g_clear_error (&error);
-        }
-    }
   udisks_block_set_id_uuid (iface, s);
   g_free (s);
 
@@ -1668,28 +1652,49 @@ has_whitespace (const gchar *s)
   return FALSE;
 }
 
-static gchar *
-make_block_luksname (UDisksBlock *block, GError **error)
+/**
+ * udisks_linux_block_make_dm_name:
+ * @block: A #UDisksBlock.
+ *
+ * Calculates the device-mapper name to use for a crypto device
+ * based on block label, UUID and type. Uses label if available,
+ * otherwise falls back to a type-prefixed UUID, or type-prefixed
+ * device number as a last resort.
+ *
+ * Returns: A newly allocated string with the dm name. Free with g_free().
+ */
+gchar *
+udisks_linux_block_make_dm_name (UDisksBlock *block)
 {
-  BDCryptoLUKSInfo *info = NULL;
-  gchar *ret = NULL;
+  const gchar *label;
+  const gchar *uuid;
+  const gchar *prefix;
 
-  udisks_linux_block_encrypted_lock (block);
-  info = bd_crypto_luks_info (udisks_block_get_device (block), error);
-  udisks_linux_block_encrypted_unlock (block);
-
-  if (info)
+  label = udisks_block_get_id_label (block);
+  if (label && g_strcmp0 (label, "") != 0)
     {
-      if (info->label && g_strcmp0 (info->label, "") != 0)
-        ret = g_strdup (info->label);
-      else
-        ret = g_strdup_printf ("luks-%s", info->uuid);
-      bd_crypto_luks_info_free (info);
+      gchar *safe_name;
 
-      return ret;
+      if (strlen (label) >= 128)
+        safe_name = g_strndup (label, 127);
+      else
+        safe_name = g_strdup (label);
+
+      return g_strdelimit (safe_name, "/ ", '_');
     }
+
+  if (udisks_linux_block_is_luks (block))
+    prefix = "luks";
+  else if (udisks_linux_block_is_bitlk (block))
+    prefix = "bitlk";
   else
-    return NULL;
+    prefix = "tcrypt";
+
+  uuid = udisks_block_get_id_uuid (block);
+  if (uuid && g_strcmp0 (uuid, "") != 0)
+    return g_strdup_printf ("%s-%s", prefix, uuid);
+
+  return g_strdup_printf ("%s-%" G_GUINT64_FORMAT, prefix, udisks_block_get_device_number (block));
 }
 
 static gboolean
@@ -2818,15 +2823,64 @@ udisks_linux_block_is_unknown_crypto (UDisksBlock *block)
 
 /* ---------------------------------------------------------------------------------------------------- */
 
+/**
+ * udisks_linux_block_encrypted_lock:
+ * @block: A #UDisksBlock.
+ *
+ * Acquires both the global cryptsetup lock and the per-device lock.
+ * Use this for active operations (unlock, lock, resize, format, etc.)
+ * that modify device state.
+ *
+ * Must be paired with udisks_linux_block_encrypted_unlock().
+ */
 void
 udisks_linux_block_encrypted_lock (UDisksBlock *block)
+{
+  UDisksLinuxBlock *block_iface = UDISKS_LINUX_BLOCK (block);
+  g_mutex_lock (&global_encrypted_lock);
+  g_mutex_lock (&block_iface->encrypted_lock);
+}
+
+/**
+ * udisks_linux_block_encrypted_unlock:
+ * @block: A #UDisksBlock.
+ *
+ * Releases both the per-device lock and the global cryptsetup lock.
+ * Must be paired with udisks_linux_block_encrypted_lock().
+ */
+void
+udisks_linux_block_encrypted_unlock (UDisksBlock *block)
+{
+  UDisksLinuxBlock *block_iface = UDISKS_LINUX_BLOCK (block);
+  g_mutex_unlock (&block_iface->encrypted_lock);
+  g_mutex_unlock (&global_encrypted_lock);
+}
+
+/**
+ * udisks_linux_block_encrypted_info_lock:
+ * @block: A #UDisksBlock.
+ *
+ * Acquires only the per-device lock. Use this for info operations
+ * that read device metadata without modifying state.
+ *
+ * Must be paired with udisks_linux_block_encrypted_info_unlock().
+ */
+void
+udisks_linux_block_encrypted_info_lock (UDisksBlock *block)
 {
   UDisksLinuxBlock *block_iface = UDISKS_LINUX_BLOCK (block);
   g_mutex_lock (&block_iface->encrypted_lock);
 }
 
+/**
+ * udisks_linux_block_encrypted_info_unlock:
+ * @block: A #UDisksBlock.
+ *
+ * Releases the per-device lock.
+ * Must be paired with udisks_linux_block_encrypted_info_lock().
+ */
 void
-udisks_linux_block_encrypted_unlock (UDisksBlock *block)
+udisks_linux_block_encrypted_info_unlock (UDisksBlock *block)
 {
   UDisksLinuxBlock *block_iface = UDISKS_LINUX_BLOCK (block);
   g_mutex_unlock (&block_iface->encrypted_lock);
@@ -3224,12 +3278,7 @@ format_create_luks (UDisksDaemon  *daemon,
 
   /* Open it */
   crypto_job_data.read_only = FALSE;
-  crypto_job_data.map_name = make_block_luksname (block, error);
-  if (!crypto_job_data.map_name)
-    {
-      g_prefix_error (error, "Failed to get LUKS UUID: ");
-      return FALSE;
-    }
+  crypto_job_data.map_name = udisks_linux_block_make_dm_name (block);
 
   udisks_linux_block_encrypted_lock (block);
   if (!udisks_daemon_launch_threaded_job_sync (daemon,
